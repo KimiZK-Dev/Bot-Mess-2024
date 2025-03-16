@@ -1,0 +1,90 @@
+# thjhz.js
+
+thjhz.errorFormat=Module Không Đúng Định Dạng!
+thjhz.nameExist=Tên Module %1 Bị Trùng Với Một Module Mang Cùng Tên Khác!
+thjhz.notFoundLanguage=Module %1 Không Hỗ Trợ Ngôn Ngữ Của Bạn
+thjhz.notFoundPackage=Không Tìm Thấy Package %1 Hỗ Trợ Cho Module %2
+thjhz.cantInstallPackage=Không Thể Cài Đặt Package %1 Cho Module %2, Lỗi: %3
+thjhz.loadedPackage=Đã Tải Thành Công Toàn Bộ Package Cho Module %1
+thjhz.loadedConfig=Đã Tải Thành Công Config Cho Module %1
+thjhz.cantLoadConfig=Không Thể Tải Config Của Module %1, Lỗi: %2
+thjhz.cantOnload=Không Thể Khởi Chạy Setup Của Module %1, Lỗi: %1
+thjhz.successLoadModule=Đã tải thành công lệnh: %1
+thjhz.failLoadModule=Không Thể Tải Thành Công Module %1, Lỗi: %2
+thjhz.finishLoadModule=Tải thành công %1 lệnh Và %2 sự kiện
+thjhz.foundPathAppstate=Đã tìm thấy file Appstate
+thjhz.notFoundPathAppstate=Không Tìm Thấy Appstate
+thjhz.keyNotSameFormat=Dữ Liệu Bạn Nhập Phải Là Một Dãy Số Bao Gồm 6 Chữ Số!
+thjhz.handleListenError=HandleListener Đã Xảy Ra Một Số Lỗi Không Mong Muốn, Lỗi: %1
+thjhz.refreshListen=Đã Làm Mới Lại HandleListener...
+thjhz.successConnectDatabase=Kết Nối Cơ Sở Dữ Liệu Thành Công
+thjhz.failConnectDatabase=Kết Nối Cơ Sở Dữ Liệu Thất Bại, Lỗi: %1
+
+# includes/listen.js
+
+listen.startLoadEnvironment=Tiến hành khởi tạo biến môi trường...
+listen.loadedEnvironmentThread=Đã tải thành công biến môi trường nhóm
+listen.loadedEnvironmentUser=Đã tải thành công biến môi trường người dùng
+listen.successLoadEnvironment=Đã khởi tạo biến môi trường thành công
+listen.failLoadEnvironment=Khởi tạo biến môi trường không thành công, lỗi: %1
+
+# includes/controller/currencies.js
+
+currencies.needObjectOrArray=Phải là một Array hoặc Object hoặc có thể là cả hai
+currencies.needObject=Phải là một Object
+currencies.needNumber=Phải là một con số
+
+# includes/controller/threads.js
+
+threads.needObjectOrArray=Phải là một Array hoặc Object hoặc có thể là cả hai
+threads.needObject=Phải là một Object
+
+# includes/controller/users.js
+
+users.needObjectOrArray=Phải là một Array hoặc Object hoặc có thể là cả hai
+users.needObject=Phải là một Object
+
+# includes/handle/handleCommand.js
+
+handleCommand.userBanned=⛔ Hiện tại bạn đang bị ban\nLý do: %1\nLiên hệ Admin để khóa: https://www.facebook.com/profile.php?id=593577006
+handleCommand.threadBanned=⛔ Hiện tại nhóm của bạn đang bị ban\nLý do: %1\nLiên hệ Admin để khóa: https://www.facebook.com/profile.php?id=593577006
+handleCommand.commandThreadBanned=❎ Nhóm bạn đã bị cấm sử dụng lệnh %1
+handleCommand.commandUserBanned=❎ Bạn đã bị cấm sử dụng lệnh %1
+handleCommand.cantGetInfoThread=Không thể lấy thông tin của nhóm, lỗi: %1
+handleCommand.permssionNotEnough=Bạn không có quyền sử dụng lệnh này.
+handleCommand.cantSetMessageReaction=Đã có lỗi xảy ra không mong muốn tại setMessageReaction, lỗi: %1
+handleCommand.notFoundLanguage=Không tìm thấy ngôn ngữ hỗ trợ cho module %1s
+handleCommand.executeCommand=[ %1 ] Lệnh sử dụng: %2 bởi người dùng: %3 tại nhóm: %4 | Args đi kèm: %5 | Thời gian xử lý: %6ms
+handleCommand.commandError=❎ Đã xảy ra lỗi không mong muốn trong khi thực thi lệnh %1, lỗi: %2
+
+# includes/handle/handleCommandEvent.js
+
+handleCommandEvent.moduleError=Đã xảy ra lỗi không mong muốn tại lệnh %1, lỗi: %2
+
+# includes/handle/handleCreateDatabase.js
+
+handleCreateDatabase.newThread=UID BOX NEW %1
+handleCreateDatabase.newUser=UID USER NEW %1
+
+# includes/handle/handleEvent.js
+
+handleEvent.executeEvent=[ %1 ] Event được thực thi: %2 tại nhóm: %3 | Thời gian xử lý: %4ms
+handleEvent.eventError=Đã xảy ra lỗi không mong muốn trong khi thực thi event %1, lỗi: %12
+
+# includes/handle/handleReaction.js
+
+handleReaction.missingValue=Thiếu dữ liệu để có thể thực thi phản hồi lại câu trả lời của bạn
+handleReaction.executeError=Đã xảy ra lỗi không mong muốn khi đang thực thi trả lời câu hỏi bạn, lỗi: %1
+
+# includes/handle/handleReply.js
+
+handleReply.missingValue=Thiếu dữ liệu để có thể thực thi phản hồi lại câu trả lời của bạn
+handleReply.executeError=Đã xảy ra lỗi không mong muốn khi đang thực thi trả lời câu hỏi bạn, lỗi: %1
+
+# includes/handle/handleSchedule.js
+
+handleSchedule.exectuteError=Đã xảy ra lỗi không mong muốn trong lúc schedule tại module %1, lỗi: %2
+
+# utils/index.js
+
+utils.throwError=Lệnh bạn sử dụng không đúng cú pháp, dùng %1menu %2 để biết cách sử dụng

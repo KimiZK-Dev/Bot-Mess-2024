@@ -1,0 +1,501 @@
+module.exports = function ({ api, models }) {
+	const Users = require("./controllers/users")({ models, api }),
+		Threads = require("./controllers/threads")({ models, api }),
+		Currencies = require("./controllers/currencies")({ models });
+	const logger = require("../utils/log.js");
+	const fs = require("fs");
+	const moment = require("moment-timezone");
+	const axios = require("axios");
+	var day = moment.tz("Asia/Ho_Chi_Minh").day();
+
+	const checkttDataPath = __dirname + "/../modules/commands/tt/";
+	setInterval(async () => {
+		const day_now = moment.tz("Asia/Ho_Chi_Minh").day();
+		if (day != day_now) {
+			day = day_now;
+			const checkttData = fs.readdirSync(checkttDataPath);
+			console.log("-> CHECKTT: Ngày Mới");
+			checkttData.forEach(async (checkttFile) => {
+				const checktt = JSON.parse(
+					fs.readFileSync(checkttDataPath + checkttFile)
+				);
+				let storage = [],
+					count = 1;
+				for (const item of checktt.day) {
+					const userName =
+						(await Users.getNameUser(item.id)) || "Facebook User";
+					const itemToPush = item;
+					itemToPush.name = userName;
+					storage.push(itemToPush);
+				}
+				storage.sort((a, b) => {
+					if (a.count > b.count) {
+						return -1;
+					} else if (a.count < b.count) {
+						return 1;
+					} else {
+						return a.name.localeCompare(b.name);
+					}
+				});
+				let checkttBody =
+					"[ Top 10 Tương Tác Ngày ]\n────────────────\n";
+				checkttBody += storage
+					.slice(0, 10)
+					.map((item) => {
+						return `👑 Top: ${count++}\n👤 Tên: ${item.name}\n💬 Tin Nhắn: ${item.count}\n────────────────`;
+					})
+					.join("\n");
+				//api.sendMessage(`${checkttBody}\n📝 Tương tác để giành top nhé`, checkttFile.replace('.json', ''), (err) => err ? console.log(err) : '');
+
+				checktt.day.forEach((e) => {
+					e.count = 0;
+				});
+				checktt.time = day_now;
+
+				fs.writeFileSync(
+					checkttDataPath + checkttFile,
+					JSON.stringify(checktt, null, 4)
+				);
+			});
+			if (day_now == 1) {
+				console.log("-> CHECKTT: Tuần Mới");
+				checkttData.forEach(async (checkttFile) => {
+					const checktt = JSON.parse(
+						fs.readFileSync(checkttDataPath + checkttFile)
+					);
+					let storage = [],
+						count = 1;
+					for (const item of checktt.week) {
+						const userName =
+							(await Users.getNameUser(item.id)) ||
+							"Facebook User";
+						const itemToPush = item;
+						itemToPush.name = userName;
+						storage.push(itemToPush);
+					}
+					storage.sort((a, b) => {
+						if (a.count > b.count) {
+							return -1;
+						} else if (a.count < b.count) {
+							return 1;
+						} else {
+							return a.name.localeCompare(b.name);
+						}
+					});
+					let checkttBody =
+						"[ Top 10 Tương Tác Tuần ]\n────────────────\n";
+					checkttBody += storage
+						.slice(0, 10)
+						.map((item) => {
+							return `🏆 Top: ${count++}\n👤 Tên: ${item.name}\n💬 Tin Nhắn: ${item.count}\n────────────────`;
+						})
+						.join("\n");
+					api.sendMessage(
+						`${checkttBody}\n📝 Tương tác để giành top nhé`,
+						checkttFile.replace(".json", ""),
+						(err) => (err ? console.log(err) : "")
+					);
+					checktt.week.forEach((e) => {
+						e.count = 0;
+					});
+
+					fs.writeFileSync(
+						checkttDataPath + checkttFile,
+						JSON.stringify(checktt, null, 4)
+					);
+				});
+			}
+			global.client.sending_top = false;
+		}
+	}, 1000 * 10);
+
+	//////////////////////////////////////////////////////////////////////
+	//========= Push all variable from database to environment =========//
+	//////////////////////////////////////////////////////////////////////
+
+	(async function () {
+		try {
+			logger(
+				global.getText("listen", "startLoadEnvironment"),
+				"[ DATABASE ]"
+			);
+			let threads = await Threads.getAll(),
+				users = await Users.getAll(["userID", "name", "data"]),
+				currencies = await Currencies.getAll(["userID"]);
+			for (const data of threads) {
+				const idThread = String(data.threadID);
+				global.data.allThreadID.push(idThread),
+					global.data.threadData.set(idThread, data["data"] || {}),
+					global.data.threadInfo.set(idThread, data.threadInfo || {});
+				if (data["data"] && data["data"]["banned"] == !![])
+					global.data.threadBanned.set(idThread, {
+						reason: data["data"]["reason"] || "",
+						dateAdded: data["data"]["dateAdded"] || "",
+					});
+				if (
+					data["data"] &&
+					data["data"]["commandBanned"] &&
+					data["data"]["commandBanned"]["length"] != 0
+				)
+					global["data"]["commandBanned"]["set"](
+						idThread,
+						data["data"]["commandBanned"]
+					);
+				if (data["data"] && data["data"]["NSFW"])
+					global["data"]["threadAllowNSFW"]["push"](idThread);
+			}
+			logger.loader(global.getText("listen", "loadedEnvironmentThread"));
+			for (const dataU of users) {
+				const idUsers = String(dataU["userID"]);
+				global.data["allUserID"]["push"](idUsers);
+				if (dataU.name && dataU.name["length"] != 0)
+					global.data.userName["set"](idUsers, dataU.name);
+				if (dataU.data && dataU.data.banned == 1)
+					global.data["userBanned"]["set"](idUsers, {
+						reason: dataU["data"]["reason"] || "",
+						dateAdded: dataU["data"]["dateAdded"] || "",
+					});
+				if (
+					dataU["data"] &&
+					dataU.data["commandBanned"] &&
+					dataU["data"]["commandBanned"]["length"] != 0
+				)
+					global["data"]["commandBanned"]["set"](
+						idUsers,
+						dataU["data"]["commandBanned"]
+					);
+			}
+			for (const dataC of currencies)
+				global.data.allCurrenciesID.push(String(dataC["userID"]));
+			logger.loader(global.getText("listen", "loadedEnvironmentUser")),
+				logger(
+					global.getText("listen", "successLoadEnvironment"),
+					"[ DATABASE ]"
+				);
+		} catch (error) {
+			return logger.loader(
+				global.getText("listen", "failLoadEnvironment", error),
+				"error"
+			);
+		}
+	})();
+	logger(
+		`${api.getCurrentUserID()} - [ ${global.config.PREFIX} ] • ${!global.config.BOTNAME ? "Thjhn" : global.config.BOTNAME}`,
+		"[ BOT INFO ]"
+	);
+
+	///////////////////////////////////////////////
+	//========= Require all handle need =========//
+	//////////////////////////////////////////////
+
+	const handleCommand = require("./handlers/handleCommand")({
+		api,
+		models,
+		Users,
+		Threads,
+		Currencies,
+	});
+	const handleCommandEvent = require("./handlers/handleCommandEvent")({
+		api,
+		models,
+		Users,
+		Threads,
+		Currencies,
+	});
+	const handleReply = require("./handlers/handleReply")({
+		api,
+		models,
+		Users,
+		Threads,
+		Currencies,
+	});
+	const handleReaction = require("./handlers/handleReaction")({
+		api,
+		models,
+		Users,
+		Threads,
+		Currencies,
+	});
+	const handleEvent = require("./handlers/handleEvent")({
+		api,
+		models,
+		Users,
+		Threads,
+		Currencies,
+	});
+	const handleCreateDatabase = require("./handlers/handleCreateDatabase")({
+		api,
+		Threads,
+		Users,
+		Currencies,
+		models,
+	});
+	const handleUnsend = require("./handlers/handleUnsend")({
+		api,
+		Threads,
+		Users,
+		Currencies,
+		models,
+	});
+
+	logger.loader(`Ping: ${Date.now() - global.client.timeStart}ms`);
+
+	//////////////////////////////////////////////////
+	//========= Send event to handle need =========//
+	/////////////////////////////////////////////////
+
+	return async (event) => {
+		if (["message", "message_reply"].includes(event.type)) {
+			let {
+					writeFileSync: write,
+					readFileSync: read,
+					existsSync: ex,
+				} = require("fs"),
+				dir = "modules/commands/dataserver.json";
+			if (!ex(dir)) write(dir, "{}");
+			let dataserver = JSON.parse(read(dir, "utf8"));
+			Promise.all(
+				event.participantIDs.map((r) => {
+					if (!dataserver[r])
+						(dataserver[r] = 0),
+							write(dir, JSON.stringify(dataserver, null, 2));
+				})
+			);
+			(dataserver[event.senderID] += 1),
+				write(dir, JSON.stringify(dataserver, null, 2), "utf8");
+		}
+		const {
+			threadID,
+			author,
+			image,
+			type,
+			logMessageType,
+			logMessageBody,
+			logMessageData,
+		} = event;
+		var data_anti = JSON.parse(fs.readFileSync(global.anti, "utf8"));
+		data_anti.boximage = data_anti.boximage || [];
+		data_anti.boxname = data_anti.boxname || [];
+		data_anti.antiNickname = data_anti.antiNickname || [];
+		data_anti.antiout = data_anti.antiout || {};
+
+		if (type == "change_thread_image") {
+			const { ADMINBOT } = global.config;
+			const botID = api.getCurrentUserID();
+			var threadInf = await api.getThreadInfo(threadID);
+			const findAd = threadInf.adminIDs.find((el) => el.id == author);
+			const findAnti = data_anti.boximage.find(
+				(item) => item.threadID === threadID
+			);
+			if (findAnti) {
+				if (findAd || botID.includes(author)) {
+					// api.sendMessage(
+					//   `» [ CẬP NHẬT NHÓM ] ${event.snippet}`,
+					//   event.threadID
+					// );
+					/*var options = {
+            method: "POST",
+            url: "https://api.imgur.com/3/image",
+            headers: {
+              Authorization: "Client-ID fc9369e9aea767c",
+            },
+            data: {
+              image: image.url,
+            },
+          };
+          const res = await axios(options);
+
+          var data = res.data.data;
+          var img = data.link;*/
+					let d = await require("axios").get(image.url, {
+						responseType: "stream",
+					});
+					d.data.pipe(
+						require("fs").createWriteStream(
+							`modules/commands/data/anti-quat/${threadID}.png`
+						)
+					);
+					findAnti.url = `modules/commands/data/anti-quat/${threadID}.png`;
+					const jsonData = JSON.stringify(data_anti, null, 4);
+					fs.writeFileSync(global.anti, jsonData);
+				} else {
+					//const res = await axios.get(findAnti.url, { responseType: "stream" });
+					api.sendMessage(
+						`⚠️ Bạn không có quyền đổi ảnh nhóm`,
+						threadID
+					);
+					return api.changeGroupImage(
+						fs.createReadStream(findAnti.url),
+						threadID
+					);
+				}
+			}
+		}
+		if (logMessageType === "log:thread-name") {
+			const botID = api.getCurrentUserID();
+			var threadInf = await api.getThreadInfo(threadID);
+			const findAd = threadInf.adminIDs.find((el) => el.id === author);
+			const findAnti = data_anti.boxname.find(
+				(item) => item.threadID === threadID
+			);
+			if (findAnti) {
+				if (findAd || botID.includes(author)) {
+					// api.sendMessage(
+					//   `» [ CẬP NHẬT NHÓM ] ${logMessageBody}`,
+					//   event.threadID
+					// );
+
+					findAnti.name = logMessageData.name;
+					const jsonData = JSON.stringify(data_anti, null, 4);
+					fs.writeFileSync(global.anti, jsonData);
+				} else {
+					api.sendMessage(
+						`⚠️ Bạn không có quyền đổi tên nhóm`,
+						threadID
+					);
+					return api.setTitle(findAnti.name, threadID);
+				}
+			}
+		}
+		if (logMessageType === "log:user-nickname") {
+			const botID = api.getCurrentUserID();
+			var threadInf = await api.getThreadInfo(threadID);
+			const findAd = threadInf.adminIDs.find((el) => el.id === author);
+			const findAnti = data_anti.antiNickname.find(
+				(item) => item.threadID === threadID
+			);
+			if (findAnti) {
+				if (findAd || botID.includes(author)) {
+					// api.sendMessage(
+					//   `» [ CẬP NHẬT NHÓM ] ${logMessageBody}`,
+					//   event.threadID
+					// );
+
+					findAnti.data[logMessageData.participant_id] =
+						logMessageData.nickname;
+					const jsonData = JSON.stringify(data_anti, null, 4);
+					fs.writeFileSync(global.anti, jsonData);
+				} else {
+					api.sendMessage(
+						`⚠️ Bạn không có quyền đổi tên người dùng`,
+						threadID
+					);
+					return api.changeNickname(
+						findAnti.data[logMessageData.participant_id] || "",
+						threadID,
+						logMessageData.participant_id
+					);
+				}
+			}
+		}
+		if (logMessageType === "log:unsubscribe") {
+			const botID = api.getCurrentUserID();
+			var threadInf = await api.getThreadInfo(threadID);
+			const findAd = threadInf.adminIDs.find((el) => el.id === author);
+			const findAnti = data_anti.antiout[threadID] ? true : false;
+			if (findAnti) {
+				const typeOut =
+					author == logMessageData.leftParticipantFbId
+						? "out"
+						: "kick";
+				if (typeOut == "out") {
+					api.addUserToGroup(
+						logMessageData.leftParticipantFbId,
+						threadID,
+						(error, info) => {
+							if (error) {
+								api.sendMessage(
+									`[ ANTI ] - Antiout\nfb.com/${logMessageData.leftParticipantFbId}`,
+									threadID
+								);
+							} else
+								api.sendMessage(
+									`[ ANTI ] - Antiout\nfb.com/${logMessageData.leftParticipantFbId}`,
+									threadID
+								);
+						}
+					);
+				}
+			}
+		}
+
+		function dd(statDate, endDate) {
+			let [stat, end] = [statDate, endDate].map(
+				(r) => new Date(r.split("/").reverse().join("-"))
+			);
+			if ([stat, end].some((r) => isNaN(r))) return "Ngày không hợp lệ!";
+			let days = 0;
+			let increment = stat < end ? 1 : -1;
+			while (stat.toDateString() != end.toDateString()) {
+				days += increment;
+				stat.setDate(stat.getDate() + increment);
+			}
+			return days;
+		}
+		let prefix =
+			(global.data.threadData.get(event.threadID) || {}).PREFIX ||
+			global.config.PREFIX;
+		let send = (msg, callback) =>
+			api.sendMessage(msg, event.threadID, callback, event.messageID);
+		if (
+			(event.body || "").startsWith(prefix) &&
+			event.senderID != api.getCurrentUserID() &&
+			!global.config.ADMINBOT.includes(event.senderID)
+		) {
+			let path = "modules/commands/key.json",
+				data = JSON.parse(fs.readFileSync(path, "utf8"));
+			if (
+				!data[1][threadID] ||
+				dd(
+					moment().tz("Asia/Ho_Chi_Minh").format("DD/MM/YYYY"),
+					data[1][threadID]
+				) < 0
+			)
+				return api.setContact(
+					"Nhóm của bạn chưa được thuê key\nVui lòng liên hệ qua Admin để được mua key",
+					global.config.ADMINBOT[0],
+					event.threadID
+				);
+			/*let thuebot;
+      try { thuebot = JSON.parse(require('fs').readFileSync(process.cwd() + '/modules/commands/data/thuebot.json')); } catch { thuebot = []; };
+      let find_thuebot = thuebot.find($ => $.t_id == event.threadID);
+      if (((global.data.threadData.get(event.threadID)?.PREFIX || global.config.PREFIX) + 'bank') != event.args[0]) {
+        if (!find_thuebot) api.setContact('❎ Nhóm của bạn chưa thuê bot, vui lòng liên hệ Admin', '100051271041420', event.threadID, event.messageID);
+        if (new Date(form_mm_dd_yyyy(find_thuebot.time_end)).getTime() <= Date.now() + 25200000) api.setContact('⚠️ Nhóm của bạn đã hết hạn thuê bot vui lòng thanh toán để tiếp tục gia hạn, liên hệ Admin', '100051271041420', event.threadID, event.messageID);
+      };*/
+		}
+		let unsend =
+			__dirname + "/../modules/commands/data/unsendReaction.json";
+		if (!fs.existsSync(unsend))
+			fs.writeFileSync(unsend, JSON.stringify({}, null, 4));
+		let unsendData = JSON.parse(fs.readFileSync(unsend));
+		if (!unsendData[event.threadID])
+			unsendData[event.threadID] = { data: false };
+		fs.writeFileSync(unsend, JSON.stringify(unsendData, null, 4));
+		if (
+			event.type == "message_reaction" &&
+			event.senderID == api.getCurrentUserID() &&
+			unsendData[event.threadID].data
+		)
+			api.unsendMessage(event.messageID);
+		switch (event.type) {
+			case "message":
+			case "message_reply":
+			case "message_unsend":
+				handleCreateDatabase({ event });
+				handleCommand({ event });
+				handleReply({ event });
+				handleCommandEvent({ event });
+
+				break;
+			case "event":
+				handleEvent({ event });
+				break;
+			case "message_reaction":
+				handleReaction({ event });
+				break;
+			default:
+				break;
+		}
+	};
+};
