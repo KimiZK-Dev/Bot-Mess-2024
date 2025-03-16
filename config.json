@@ -1,0 +1,42 @@
+{
+    "language": "vi",
+    "DeveloperMode": true,
+    "autoCreateDB": true,
+    "allowInbox": true,
+    "autoClear": [
+        "png",
+        "jpg",
+        "jpeg",
+        "mp4",
+        "mp3",
+        "m4a",
+        "ttf",
+        "gif"
+    ],
+    "adminOnly": false,
+    "commandDisabled": [],
+    "eventDisabled": [],
+    "BOTNAME": "",
+    "PREFIX": "",
+    "ADMINBOT": [
+        ""
+    ],
+    "NDH": [
+        ""
+    ],
+    "DATABASE": {
+        "sqlite": {
+            "storage": "data.sqlite"
+        }
+    },
+    "APPSTATEPATH": "appstate/1.json",
+    "FCAOption": {
+        "forceLogin": true,
+        "listenEvents": true,
+        "pauseLog": true,
+        "logLevel": "silent",
+        "selfListen": false,
+        "userAgent": "Mozilla/5.0 (Linux; Android 7.0; dolphin Build/NRD91N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.100 Safari/537.36"
+    },
+    "version": "3.6.0"
+}

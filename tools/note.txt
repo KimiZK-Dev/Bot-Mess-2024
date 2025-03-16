@@ -1,0 +1,12 @@
+https://graph.facebook.com/${id}?fields=id,picture,education,timezone,updated_time,is_verified,cover,created_time,work,hometown,username,name,locale,location,about,website,birthday,gender,relationship_status,significant_other,quotes,subscribers.limit(0)&access_token=${global.config.ACCESSTOKEN}
+
+https://graph.facebook.com/${id}/picture?width=1500&height=1500&access_token=${global.config.ACCESSTOKEN}
+
+https://graph.facebook.com/${handleReply.author}?fields=id,likes,family,posts&access_token=${global.config.ACCESSTOKEN}
+
+https://graph.facebook.com/${id_rela}?fields=id,cover,username,picture&access_token=${global.config.ACCESSTOKEN}
+
+https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=vi&dt=t&q=${edt.type}
+
+https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=vi&dt=t&q=${r_s}
+
